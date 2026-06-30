@@ -1,0 +1,63 @@
+# Hedge-word lexicon (~55 entries, lowercase; one per line; bigrams allowed).
+# Adapted from Hyland (2005), "Metadiscourse: Exploring Interaction in Writing",
+# Continuum — standard hedging items, restricted to forms common in Reddit prose.
+maybe
+perhaps
+possibly
+probably
+likely
+unlikely
+apparently
+seemingly
+somewhat
+fairly
+rather
+quite
+almost
+nearly
+roughly
+approximately
+generally
+usually
+often
+sometimes
+occasionally
+rarely
+seldom
+suggest
+suggests
+suggested
+indicate
+indicates
+indicated
+assume
+assumed
+guess
+guessing
+think
+believe
+feel
+seem
+seems
+seemed
+appear
+appears
+appeared
+may
+might
+could
+should
+presumably
+supposedly
+allegedly
+arguably
+basically
+virtually
+essentially
+mostly
+partly
+partially
+relatively
+kind of
+sort of
+more or less

@@ -1,0 +1,4 @@
+# Install only on the GPU node — for the optional semantic / topic-drift notebook (05).
+# The LLM-summary path was removed, so vllm / rouge-score are no longer needed.
+torch>=2.4
+sentence-transformers>=3.0

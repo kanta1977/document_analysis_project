@@ -1,0 +1,6 @@
+# data & generated artifacts (keep the report repo light)
+data/
+*.parquet
+__pycache__/
+.pytest_cache/
+.ipynb_checkpoints/

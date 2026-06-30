@@ -1,0 +1,43 @@
+# Whose Words Survive? — central configuration
+# Every script reads this. Change parameters here, never in code.
+
+seed: 2026
+
+corpus:
+  zip_path: data/raw/corpus-webis-tldr-17.zip
+  # name of the jsonl member inside the zip; verify with scripts/00_peek.py after download
+  member: corpus-webis-tldr-17.json
+
+# PROPOSAL — confirm against inventory results (Step 1) before sampling.
+# Buckets are the unit of analysis for RQ3.
+subreddits:
+  political:
+    - politics
+    - PoliticalDiscussion
+    - worldnews
+  mental_health:
+    - depression
+    - offmychest
+    - Anxiety
+  advice:
+    - legaladvice
+    - personalfinance
+    - relationships
+
+sample:
+  per_subreddit: 5000
+  filters:
+    content_words_min: 100
+    content_words_max: 600
+    summary_words_min: 10
+    summary_words_max: 100
+    require_title: false      # comments have null titles; decide after inventory
+  output: data/interim/sample.jsonl
+
+features:
+  hedge_lexicon: configs/lexicons/hedges.txt
+  emotion_lexicon: nrc        # NRC EmoLex via nrclex; fallback: vader sentiment only
+  spacy_model: en_core_web_sm
+
+embeddings:
+  model: sentence-transformers/all-MiniLM-L6-v2
