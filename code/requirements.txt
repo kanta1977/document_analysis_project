@@ -7,3 +7,5 @@ vaderSentiment>=3.3
 spacy>=3.7
 jupytext>=1.16
 pytest>=8.0
+scikit-learn>=1.4
+openai>=1.40

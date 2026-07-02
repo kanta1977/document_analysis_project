@@ -134,3 +134,13 @@ def test_features_for_post_has_new_columns(fixture_zip):
                 "has_advice_marker", "tldr_type"]:
         assert col in row
     assert row["tldr_type"] in {"summary", "question", "advice", "reaction"}
+
+
+def test_keyword_containment():
+    content = "my landlord raised the rent without any notice this month"
+    # summary reuses key words -> high containment
+    assert F.keyword_containment(content, "landlord raised the rent") > 0.2
+    # summary reuses nothing -> 0
+    assert F.keyword_containment(content, "totally unrelated sentence") == 0.0
+    # no usable keywords -> None
+    assert F.keyword_containment("", "anything") is None

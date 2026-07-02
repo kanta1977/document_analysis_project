@@ -48,6 +48,7 @@ EXPECTED_NEW_COLUMNS = [
 
     # TL;DR側の要約らしさ
     "summary_novelty",
+    "keyword_containment",
 
     # sentiment 関連
     "sentiment_content",
@@ -93,6 +94,7 @@ def print_bucket_summary(df: pd.DataFrame) -> None:
         "compression_ratio",
         "word_drop_rate",
         "summary_novelty",
+        "keyword_containment",
         "sentiment_shift",
         "sentiment_flip",
         "i_disappears",
@@ -130,6 +132,7 @@ def print_subreddit_summary(df: pd.DataFrame, top_n: int = 20) -> None:
     cols = [
         "compression_ratio",
         "summary_novelty",
+        "keyword_containment",
         "sentiment_shift",
         "i_disappears",
         "has_question_mark",

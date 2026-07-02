@@ -1,99 +1,79 @@
 # RUNNING — how to run the pipeline
 
-All commands are run from the project root. Steps 1–3 build the data; the
-notebooks build the figures; the website just opens in a browser.
+All commands run from the project root.
 
-## 0. Set up the environment (once)
+## 0. Environment (once)
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate          # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
+conda create --name tldr python=3.11
+conda activate tldr
+pip install -r code/requirements.txt
+pytest code/tests -q            # 28 pass, 1 skipped (NER)
 ```
 
-That installs pandas, pyarrow, vaderSentiment, matplotlib, pyyaml, pytest, etc.
-NER and GPU embeddings are optional extras (see the end).
+## 1. Corpus
 
-## 1. Get the corpus
-
-Download the Webis-TLDR-17 corpus zip and put it here (it is large and is **not**
-in git):
+Put the Webis-TLDR-17 zip at the path in `code/configs/project.yaml`
+(`corpus.zip_path`, not in git):
 
 ```
 data/raw/corpus-webis-tldr-17.zip
 ```
 
-The path is set in `configs/project.yaml` under `corpus.zip_path`.
-
-## 2. Build the data (scripts, in order)
+## 2. Build the data
 
 ```bash
-# 2a. Inventory: count posts per subreddit (run once; slow on the full zip).
-python scripts/01_inventory.py
-#     quick smoke test instead:
-python scripts/01_inventory.py --limit 100000
-
-# 2b. Sample: filter + take ~5k posts per subreddit -> data/interim/sample.jsonl
-python scripts/02_sample.py
-
-# 2c. Features: one row per post -> data/processed/features.parquet
-python scripts/03_features.py
-#     test on the first 500 posts:
-python scripts/03_features.py --limit 500
+python code/scripts/01_inventory.py                 # counts per subreddit (slow once)
+python code/scripts/02_sample.py                    # -> data/interim/sample.jsonl
+python code/scripts/03_features.py                  # -> data/processed/features.parquet
+#   test on 500 first:  python code/scripts/03_features.py --limit 500
 ```
 
-After step 2c you will see, printed to the screen: a column check, bucket-level
-means, and the **TL;DR type mix by bucket** (the `tldr_type` breakdown).
+`03_features.py` prints bucket means and the surface-flag rates.
 
-> Everything below only needs `features.parquet`, so once you have it you can
-> re-run the analysis without touching the big corpus again.
-
-## 3. Build the figures
+## 3. AI baseline (items measured against it)
 
 ```bash
-python notebooks/03_explore_human_tldr.py        # figures 01–03 + summary table
-python notebooks/04b_summariness_decomposed.py   # figure 04b
+# set your key (never commit it)
+export OPENAI_API_KEY=sk-...           # PowerShell: $env:OPENAI_API_KEY="sk-..."
+
+python code/scripts/04_ai_baseline.py --dry-run     # check the subsample, no API calls
+python code/scripts/04_ai_baseline.py               # ~200/subreddit, temp 0
+#   -> data/interim/ai_summaries.jsonl  (resumable; re-run to continue)
 ```
 
-Figures are written to `results/figures/` as `.svg` and `.png`.
+Model defaults to `gpt-4o-mini`; change with `--model`. It is a fixed reference
+point, not a gold standard.
 
-## 4. Build / view the website
-
-The website embeds the figures into a single self-contained file. To rebuild it
-after changing figures, re-run the small inliner that produced
-`docs/site/index.html` (it reads the four SVGs and writes the page). Then just
-open it:
+## 4. Distance + comparison + figures
 
 ```bash
-open docs/site/index.html          # macOS  (Linux: xdg-open, Windows: start)
+python code/notebooks/06_semantic_distance.py       # cosine + map 05  -> cosine.parquet
+python code/notebooks/07_human_vs_ai.py             # human vs AI table + fig 07
+python code/notebooks/03_explore_human_tldr.py      # figs 01–03 + summary table
+python code/notebooks/04b_summariness_decomposed.py # fig 04b
 ```
 
-For GitHub Pages, serve the `docs/` folder (Settings → Pages → Source: `/docs`),
-or move `docs/site/index.html` to `docs/index.html`.
-
-## 5. Run the tests
+Figures land in `results/figures/`. To show them on the website, copy the ones
+the report uses into the top-level `figures/` folder, e.g.:
 
 ```bash
-pytest -q
+cp results/figures/{01_compression_by_bucket,02_sentiment_shift_by_subreddit,03_first_person_survival,04b_summariness_decomposed,05_containment_vs_cosine_human,07_human_vs_ai_by_subreddit}.png figures/
 ```
 
-You should see the feature, corpus, and sampling tests pass. (One NER test is
-skipped unless the spaCy model is installed.)
+then reference them in `README.md`.
 
-## Optional extras
+## 5. View the website
 
-```bash
-# Named-entity survival columns (needs the spaCy model):
-python -m spacy download en_core_web_sm
-python scripts/03_features.py --with-ner
+`README.md` + `_config.yml` are the GitHub Pages site (theme: minimal). Push,
+then Settings → Pages → Branch `main` → your site is at
+`https://<user>.github.io/<repo>/`.
 
-# Semantic / topic-drift analysis (needs a GPU): open notebooks/05_embeddings_gpu
-# on a GPU server and Run All; it reads sample.jsonl and writes its own outputs.
-```
+## Notes
 
-## Common issues
-
-- **`Input sample file not found`** — run steps 2a/2b first; `03_features.py`
-  needs `data/interim/sample.jsonl`.
-- **parquet engine error** — `pip install pyarrow`.
-- **`en_core_web_sm` not found** — only needed for `--with-ner`; otherwise ignore.
+- `cosine` uses Sentence-BERT if installed, else TF-IDF automatically (no
+  download). For SBERT: `pip install sentence-transformers`.
+- NER is optional: `python -m spacy download en_core_web_sm` then
+  `python code/scripts/03_features.py --with-ner`.
+- Common errors: `Input sample not found` → run 01/02 first; `OPENAI_API_KEY is
+  not set` → export it; parquet engine error → `pip install pyarrow`.

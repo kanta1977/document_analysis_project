@@ -1,77 +1,71 @@
 # PIPELINE — how the files connect
 
-This project turns the raw Reddit corpus into figures about **what a human
-TL;DR actually is**. There is **no LLM step**: every number comes from the
-authors' own TL;DRs. Data flows in one direction, left to right.
+The project turns raw Reddit posts into a comparison of **human TL;DRs vs. an
+AI summary baseline**, per community. Data flows left to right.
 
 ```
-                 configs/project.yaml   ← one config, every script reads it
+                configs/project.yaml   ← one config, every script reads it
                           │
-   data/raw/corpus-…zip   │
-          │               │
-          ▼               ▼
-  scripts/01_inventory.py ──▶ results/tables/subreddit_inventory.csv
-          │  (count posts per subreddit; decide the 9 subreddits)
-          ▼
-  scripts/02_sample.py ─────▶ data/interim/sample.jsonl
-          │  (filter + take ~5k posts per subreddit, deterministic)
-          ▼
-  scripts/03_features.py ───▶ data/processed/features.parquet
-          │  (one row per post; calls features_for_post())
-          ▼
-  notebooks/  ─────────────▶ results/figures/*.svg + results/tables/*.csv
-          │
-          ▼
-  docs/site/index.html  ← embeds the figures = the website
+  data/raw/…zip           │
+        │                 ▼
+  01_inventory.py ──▶ results/tables/subreddit_inventory.csv
+        │  (count posts per subreddit → fix the 9 subreddits)
+        ▼
+  02_sample.py ─────▶ data/interim/sample.jsonl        (posts WITH text)
+        │  (filter + stratified sample)
+        ├───────────────────────────────┐
+        ▼                                ▼
+  03_features.py                   04_ai_baseline.py  ── OpenAI mini, temp 0
+        │  human features               │  (subsample → 1 summary per post)
+        ▼                                ▼
+  data/processed/features.parquet   data/interim/ai_summaries.jsonl
+        │                                │
+        └──────────────┬─────────────────┘
+                       ▼
+     06_semantic_distance.py ──▶ data/processed/cosine.parquet + fig 05
+                       ▼
+     07_human_vs_ai.py ───────▶ results/tables/human_vs_ai_by_subreddit.csv + fig 07
+                       │
+     03_explore_human_tldr.py / 04b_summariness_decomposed.py ──▶ figs 01–04b
+                       ▼
+                 ../figures/  →  ../README.md (the website)
 ```
 
 ## The library (`src/tldr_audit/`)
 
-The scripts are thin; the real logic lives here so it can be unit-tested.
+| File | Role |
+|------|------|
+| `corpus.py` | `load_config()`, `iter_posts()`, sampling filters. |
+| `features.py` | All per-post measures + surface flags + `keyword_containment` + the `tldr_type` heuristic. Pure functions, no I/O. |
+| `semantic.py` | `pairwise_cosine()` — Sentence-BERT if available, else TF-IDF cosine (no download). Returns the backend used. |
 
-| File | What it does |
-|------|--------------|
-| `corpus.py` | `load_config()` reads the YAML; `iter_posts()` streams the zip; `passes_filters()` / `word_count()` apply the sampling rules. |
-| `features.py` | All per-post measurements **and** the heuristic classifier. One pure function per feature, plus `features_for_post()` that bundles them into a row, plus `classify_tldr()` that returns the `tldr_type` label. No I/O. |
+## Items 1–4 and where they live
 
-## What `features.py` produces (per post)
+| Item | What | Column / output |
+|------|------|-----------------|
+| ① first person | voice survives? | `first_person_summary` (human) vs AI, in nb 07 |
+| ② surface signals | rates of `?` / advice words (no labels) | `has_question_mark`, `has_advice_marker` → rates in nb 07 |
+| ③ semantic distance | cosine(post, TL;DR) | `semantic.py` → `cosine.parquet` (nb 06) |
+| ④ keyword containment | post keywords reused? | `keyword_containment` (features) |
 
-`features_for_post(post)` returns one flat dict. The columns, by group:
+Items ③ + ④ combine into one map (nb 06): low containment + high cosine =
+paraphrase; low + low = diverged. Cosine is a **distance**, not a verdict.
 
-- **length / compression** — `content_words`, `summary_words`, `compression_ratio`, `word_drop_rate`
-- **summariness (is it even a summary?)** — `summary_novelty`, `novel_bigram_rate`
-- **sentiment** — `sentiment_content`, `sentiment_summary`, `sentiment_shift`, `sentiment_flip`
-- **first-person voice** — `first_person_content`, `first_person_summary`, `first_person_drop`, `i_disappears`
-- **surface flags** (ingredients for the classifier) — `has_question_mark`, `has_second_person`, `has_advice_marker`, `has_joke_marker`
-- **hedges** (kept, cheap) — `hedge_rate_content`, `hedge_rate_summary`
-- **the classifier** — `tldr_type` ∈ {`summary`, `question`, `advice`, `reaction`}
+## The AI baseline
 
-`tldr_type` is decided by a fixed priority in `classify_tldr()`:
-`?` → question; joke marker → reaction; advice language → advice;
-novelty ≥ 0.8 → reaction; otherwise → summary. It is a transparent heuristic,
-not a trained/validated model — good for *describing* how each community uses
-the slot, and clearly labelled as a proxy.
-
-## The notebooks (read `features.parquet`, write figures)
-
-| Notebook | Reads | Writes |
-|----------|-------|--------|
-| `03_explore_human_tldr.py` | `features.parquet` | figures 01–03, `rq1_bucket_summary.csv` |
-| `04b_summariness_decomposed.py` | `features.parquet` | figure 04b (summariness split by post type) |
-| `04_compare_communities.py` | `features.parquet` | community-comparison views |
-| `05_embeddings_gpu` *(optional, GPU)* | `sample.jsonl` | semantic / topic-drift outputs |
+`04_ai_baseline.py` is a fixed reference point: one OpenAI *mini* model,
+temperature 0, one neutral prompt for all subreddits, ~200 posts/subreddit.
+The API key comes from `OPENAI_API_KEY` (never stored). Same feature functions
+are applied to the AI summary in nb 07, so human and AI are measured identically.
 
 ## Folders
 
-- `data/raw/` — the downloaded corpus zip (not in git).
-- `data/interim/sample.jsonl` — the sampled posts **with text** (not in git).
-- `data/processed/features.parquet` — numbers only, no post text (safe to share).
-- `results/figures/`, `results/tables/` — outputs used by the website.
-- `tests/` — unit tests for `corpus.py`, `features.py`, and sampling.
+- `data/raw/` corpus zip (gitignored) · `data/interim/` sample.jsonl + ai_summaries.jsonl (gitignored)
+- `data/processed/` features.parquet, cosine.parquet (numbers only)
+- `results/figures/`, `results/tables/` outputs · `../figures/` figures used by the report
 
-## What was removed
+## Removed
 
-The earlier LLM-summary path (`src/tldr_audit/summarize.py`,
-`scripts/04_summarize.py`, the `models:` / `summarization:` config blocks, and
-their test) has been deleted. Comparing against machine summaries is now
-"future work", not part of this pipeline.
+The earlier stand-alone LLM-generation path (`summarize.py`, the old
+`04_summarize.py`, config `models:`/`summarization:`) is gone. The AI model now
+appears only as the neutral baseline in `04_ai_baseline.py`.

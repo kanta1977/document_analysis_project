@@ -179,6 +179,7 @@ def features_for_post(
         # --- is it even a summary? (vocabulary reuse) ---
         "summary_novelty": novelty,
         "novel_bigram_rate": novel_ngram_rate(content, summary, n=2),
+        "keyword_containment": keyword_containment(content, summary),
 
         # --- sentiment ---
         "sentiment_content": sent_c,
@@ -341,3 +342,35 @@ def classify_tldr(summary: str | None, novelty: float | None = None) -> str:
     if novelty is not None and novelty >= 0.8:
         return "reaction"
     return "summary"
+
+
+# ------------------------------------------- keyword containment (item 4)
+#
+# "Do the post's main keywords show up in the summary?" This is a LEXICAL
+# signal only: a low containment means the summary did not reuse the key
+# words, which *could* mean it dropped the point OR simply paraphrased it.
+# On its own it is a possibility, not a verdict — item 3 (cosine, semantic)
+# is what tells paraphrase apart from genuine divergence. Keep the two
+# together; do not read containment as "quality".
+
+def top_keywords(text: str | None, k: int = 10) -> list[str]:
+    """The k most frequent meaningful (non-stopword) words in the text."""
+    from collections import Counter
+
+    toks = [t for t in tokenize(text) if t not in _STOPWORDS and len(t) > 2]
+    if not toks:
+        return []
+    return [w for w, _ in Counter(toks).most_common(k)]
+
+
+def keyword_containment(content: str | None, summary: str | None, k: int = 10) -> float | None:
+    """Share of the post's top-k keywords that appear in the summary.
+
+    1.0 = every main keyword is reused; 0.0 = none are. Returns None when the
+    post has no usable keywords. Lexical only — pair with cosine (item 3).
+    """
+    kws = top_keywords(content, k)
+    if not kws:
+        return None
+    s_tokens = set(tokenize(summary))
+    return sum(w in s_tokens for w in kws) / len(kws)

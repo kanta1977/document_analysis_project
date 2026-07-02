@@ -1,6 +1,6 @@
-# Whose Words Survive?
+# What is a TL;DR, actually?
 
-### What a Reddit TL;DR actually is — and how it differs by community
+### A Reddit TL;DR is a text of unknown type — we measure how far it sits from a plain summary, and how that varies by community
 
 _Group members: Jorge, Kanta_
 
@@ -8,42 +8,41 @@ _Group members: Jorge, Kanta_
 
 ## Introduction
 
-When a Reddit post ends with a line like **"TL;DR: …"**, that line looks like a
-gift to anyone studying summarization: a short summary of a long text, written
-by the same person who wrote the text. The Webis-TLDR-17 corpus
-(Völske et al., 2017) was built on exactly this idea and has since been used
-widely as human "ground-truth" summaries.
+When a Reddit post ends with a line like **"TL;DR: …"**, that line is usually
+treated as a summary — the Webis-TLDR-17 corpus (Völske et al., 2017) was built
+on this assumption and is widely used as human "ground-truth" summaries.
 
-Working with the corpus, we noticed that many TL;DRs are not summaries at all:
-some are jokes, some are questions, some are replies to other commenters. This
-project sets that observation on a firmer footing and turns it into the research
-question:
+Working with the corpus we found that many TL;DRs are not summaries: some are
+jokes, questions, or replies. Rather than decide case by case whether each TL;DR
+"is a summary" (a judgement that needs manual labels we cannot validate in a
+week), we take a different stance:
 
-> **What is a human TL;DR actually doing, and how does that vary across
-> communities?**
+> **We treat the TL;DR as a text of unknown type, and measure how far it sits
+> from a plain summary — using an AI summary of the same post as a fixed
+> reference point. Then we ask how that distance differs across communities.**
 
-Concretely, we ask four plain questions about the TL;DR line:
+The AI summary is a **reference point** ("what a plain summary of this post
+looks like"), not a gold standard and not an object of study. We describe
+*distance* from it; we never claim the AI is correct or that a distant TL;DR is
+"wrong".
 
-1. Does the first person ("I") survive, or does the author switch to a detached
-   third-person summary?
-2. How does sentiment move from post to TL;DR?
-3. How much of the post is dropped — and is the TL;DR even a summary of it?
-4. What *kind* of text is the TL;DR (a summary, a question, advice, a reaction)?
+We look at four things, on the human TL;DR and on the AI baseline alike:
 
-We deliberately keep the study to **human** TL;DRs only. Comparing against
-machine-generated summaries is a natural follow-up, but it only makes sense once
-we know which human TL;DRs are summaries in the first place — so we treat it as
-future work.
+1. **Does the first person survive?** — voice.
+2. **Surface signals** — how often a TL;DR contains a question mark or
+   advice-type words. We report *rates only* and do not label a TL;DR a
+   "question"; we say it *may* read as one.
+3. **Semantic distance** — cosine similarity between post and TL;DR.
+4. **Keyword containment** — do the post's key words appear in the TL;DR.
 
 ## Dataset
 
-We use the **Webis-TLDR-17** corpus (Völske et al., 2017), 3,848,330 Reddit
-posts from 29,651 subreddits, each paired with the author's own TL;DR
+We use the **Webis-TLDR-17** corpus (Völske et al., 2017): 3,848,330 Reddit
+posts from 29,651 subreddits, each with the author's own TL;DR
 ([dataset](https://huggingface.co/datasets/webis/tldr-17),
-[paper](https://aclanthology.org/W17-4508.pdf)).
-
-To compare communities rather than individual subreddits, we group nine
-subreddits into three **buckets**:
+[paper](https://aclanthology.org/W17-4508.pdf)). We group nine subreddits into
+three buckets and draw a stratified sample of **39,859 posts** (up to ~5,000 per
+subreddit; 100–600 content words; TL;DR ≥ 10 words).
 
 | Bucket | Subreddits |
 |--------|------------|
@@ -51,28 +50,18 @@ subreddits into three **buckets**:
 | mental_health | depression, offmychest, Anxiety |
 | advice | legaladvice, personalfinance, relationships |
 
-From these we draw a stratified sample of **39,859 posts** (up to ~5,000 per
-subreddit), keeping posts with 100–600 content words and a TL;DR of at least 10
-words. A key property we track throughout is whether a row is a **self-post**
-(the author summarizing their own story) or a **comment** (a reply inside a
-thread), because the two use the TL;DR slot very differently.
-
-For privacy, all results are aggregates; no usernames are shown, and posts from
-mental-health communities are described in aggregate and never quoted.
+For the AI baseline we take a **stratified subsample of ~200 posts per
+subreddit (~1,800 total)** and generate one summary each. All results are
+aggregates; no usernames are shown; mental-health posts are never quoted.
 
 ## Methods
 
 ### Setup
 
-The pipeline is plain Python and runs on a CPU; no GPU is required for the
-results in this report.
+Plain Python, CPU-only for items 1–4 (the AI baseline calls the OpenAI API).
 
-- Python 3.11
-- Dependencies are pinned in [`code/requirements.txt`](code/requirements.txt):
-  `pandas`, `pyarrow`, `vaderSentiment`, `matplotlib`, `pyyaml`, `pytest`
-  (plus optional `spacy` for named-entity features).
-
-Recreate the environment and run the tests:
+- Python 3.11; dependencies pinned in [`code/requirements.txt`](code/requirements.txt).
+- Recreate and test:
 
 ```bash
 conda create --name tldr python=3.11
@@ -81,124 +70,144 @@ pip install -r code/requirements.txt
 pytest code/tests -q
 ```
 
-Full step-by-step run instructions are in
-[`code/RUNNING.md`](code/RUNNING.md); the file-by-file data flow is in
-[`code/PIPELINE.md`](code/PIPELINE.md).
+Run order and file-by-file flow are in [`code/RUNNING.md`](code/RUNNING.md) and
+[`code/PIPELINE.md`](code/PIPELINE.md); a full walkthrough is in
+[`code/GUIDE.md`](code/GUIDE.md).
 
 ### Experiments
 
-**Preprocessing.** `code/scripts/01_inventory.py` streams the corpus once to
-count posts per subreddit (which fixes the bucket choices), and
-`code/scripts/02_sample.py` applies the length filters and draws the
-deterministic stratified sample into `sample.jsonl`.
+**Preprocessing.** `01_inventory.py` counts posts per subreddit; `02_sample.py`
+filters and draws the stratified sample into `sample.jsonl`.
 
-**Feature extraction.** `code/scripts/03_features.py` reads the sample and, for
-each post, computes one row of features
-(`code/src/tldr_audit/features.py`). The measures fall into five groups:
+**Human features.** `03_features.py` computes one row per post
+(`src/tldr_audit/features.py`): first-person density, the surface flags
+(`has_question_mark`, `has_advice_marker`, `has_second_person`),
+`summary_novelty`, `keyword_containment`, sentiment, and compression.
 
-- **Length / compression** — `compression_ratio`, `word_drop_rate`.
-- **Summariness** — `summary_novelty`: the share of the TL;DR's meaningful words
-  that do **not** appear in the post (0 = pure summary, 1 = all-new wording),
-  plus a bigram version (`novel_bigram_rate`) for abstractiveness
-  (Grusky et al., 2018).
-- **Sentiment** — VADER (Hutto & Gilbert, 2014) compound score for post and
-  TL;DR, their shift, and a polarity-flip flag.
-- **First-person voice** — pronoun density in post and TL;DR, and whether "I"
-  disappears.
-- **Speech-act type** — `tldr_type`, a transparent rule-based label assigning
-  each TL;DR to **summary / question / advice / reaction** from simple surface
-  signals (a question mark, advice words, joke markers, or very high novelty).
-  This is a cheap heuristic for *describing* how communities use the slot, not a
-  trained or hand-validated classifier.
+**AI baseline.** `04_ai_baseline.py` sends each subsampled post body to a fixed
+OpenAI *mini* model at **temperature 0** with one neutral prompt, identical for
+every subreddit:
 
-**Analysis & figures.** The notebooks in `code/notebooks/` read the resulting
-`features.parquet` and produce the figures below. No language model is used to
-generate summaries anywhere in this pipeline.
+> *System:* "You are a neutral summarization baseline. Write a faithful, concise
+> summary of a single Reddit post. Add no opinions, advice, questions, or jokes,
+> and no information not in the post. Output only the summary text."
+> *User:* "Summarize the following Reddit post in one or two sentences. Do not
+> add anything that is not in the post."
+
+We deliberately do **not** tell the model to keep the first person, so the
+model's own default is what we measure (item 1). The key is read from the
+`OPENAI_API_KEY` environment variable and never stored.
+
+**Semantic distance & comparison.** `06_semantic_distance.py` computes
+cosine(post, TL;DR) with Sentence-BERT, or TF-IDF cosine as a no-download
+fallback so it runs anywhere. `07_human_vs_ai.py` measures items 1–4 on the
+human TL;DR and the AI summary for each post, then aggregates **per subreddit**
+and **overall** (the overall value is the baseline line).
 
 ## Results and Discussion
 
-### 1. Does "I" disappear?
+_The community figures below (compression, sentiment, summariness) are built
+from the full human sample. The human-vs-AI comparison (items 1–4) is produced
+by notebooks 06–07 once the AI baseline is generated; see the table in
+`results/tables/human_vs_ai_by_subreddit.csv`._
 
-Advice and mental-health authors stay inside their own summary: the first-person
-density of the post (dot) and the TL;DR (arrowhead) sit close together. Political
-writing barely uses "I" to begin with (~3% of words vs. ~10% in r/depression), so
-there is little personal voice to preserve. The author's presence in a summary is
-therefore a community-specific choice, not a constant.
+### 1. Does the first person survive?
 
-![First-person survival](figures/03_first_person_survival.png)
+Summarizing generally thins out the first person: an AI summary tends to shift
+"I can't pay my rent" toward "the poster has a payment issue". Yet in Reddit's
+advice and mental-health communities the TL;DR keeps "I" at nearly the density
+of the post. So the survival of the first person is not a property of
+summarizing — it is a property of **Reddit's self-narration culture**, strongest
+where people tell their own stories and near-absent in political writing.
 
-### 2. How does sentiment move?
+![First-person density](figures/03_first_person_survival.png)
 
-Most TL;DRs drift toward neutral — summarizing flattens the mood. The exceptions
-are the interesting part: in r/depression the TL;DR stays just as negative as the
-post (authors do not soften their own account), whereas r/Anxiety moves toward
-neutral, as if summarized from a calmer distance. The same "mental-health" bucket
-handles emotion in opposite directions.
+### 2. Surface signals (reported as rates, not labels)
 
-![Sentiment shift](figures/02_sentiment_shift_by_subreddit.png)
+We count how often a TL;DR contains a question mark or advice-type words
+(should / need to / avoid …). We stop at the rate: a question mark **may**
+indicate the TL;DR is really a question rather than a summary, but we do not
+label it as such. These rates differ by community — political comment threads
+carry far more "reaction"-like markers than advice self-posts — and reading the
+rates, rather than forcing a category, keeps the interpretation open.
 
-### 3. How much is dropped — and is it even a summary?
+### 3. Semantic distance, and 4. keyword containment
 
-Authors keep about a tenth of their words in every community, so "short" is
-universal. But short is not the same as *summarizing*: only ~6% of TL;DRs are
-clearly extractive (novelty ≤ 0.2), and the median TL;DR introduces over half new
-vocabulary.
+How far is the TL;DR from the post in meaning (cosine, item 3), and does it
+reuse the post's key words (containment, item 4)? The two together separate
+cases that either one alone confuses:
+
+- high containment + high cosine → an extractive summary
+- **low containment + high cosine → a paraphrase** (different words, same meaning)
+- **low containment + low cosine → genuinely diverged** (not really a summary)
+
+Containment alone only raises a *possibility* ("few key words reused"); cosine
+tells paraphrase apart from real divergence. We show both on one map. Across
+communities, only ~6% of TL;DRs are clearly extractive; most rewrite the post,
+and political TL;DRs sit farthest from the post.
 
 ![Compression by bucket](figures/01_compression_by_bucket.png)
 
-The crucial confound is **post type**. Comment TL;DRs barely reuse the post
-(median novelty 0.67; 24% are near-pure-new text) because they are replies, not
-self-summaries. Political communities looked extreme only because they are ~92%
-comments. Splitting self-posts from comments shrinks the community gap but does
-not erase it: even among self-posts, political TL;DRs reuse the post least
-(~16% high-novelty vs. ~5% in advice).
-
 ![Summariness, split by post type](figures/04b_summariness_decomposed.png)
 
-### 4. What kind of text is the TL;DR?
+Splitting self-posts from comments matters: comment TL;DRs barely reuse the post
+because they are replies, so political communities looked extreme mainly because
+they are ~92% comments — the community gap shrinks once you separate the two,
+but does not vanish.
 
-Using the `tldr_type` label, we can read each community by the **mix** of speech
-acts in its TL;DR slot — how often it is a genuine summary versus a question,
-advice, or a reaction. This is the most direct answer to "what is the TL;DR
-doing", and it is what the earlier human-vs-machine comparison was missing: a
-machine always returns a summary, so comparing it against a human reaction would
-measure a genre mismatch, not summary quality.
+### The AI baseline makes the numbers legible
 
-**Limitations.** The summariness and type labels are proxies, not verdicts on any
-single post: a faithful paraphrase can still score as "novel", so the score
-bounds how common non-summaries are rather than identifying them one by one.
-VADER is a blunt instrument on short text, and the corpus is 2017 English Reddit,
-so magnitudes should be read as directional.
+On its own, "the median TL;DR keeps ~55% new words" invites the question *is
+that a lot?* Placing the AI summary beside it answers this: the AI summary of
+the same post stays lexically and semantically closer to it, so the human TL;DR
+is measurably farther from a plain summary — and that distance is uneven across
+communities. Because the AI almost never produces a question, joke, or advice
+line, the human side's surface-signal rates make the human "non-summariness"
+visible by contrast.
+
+**Sentiment** is reported for completeness: most TL;DRs drift toward neutral,
+with r/depression staying negative and r/Anxiety moving calmer.
+
+![Sentiment shift](figures/02_sentiment_shift_by_subreddit.png)
+
+### Limitations
+
+These are surface and abstractive proxies, **not** semantic verdicts. Keyword
+containment and novelty are lexical; a faithful paraphrase scores as "novel".
+Cosine is a **distance we describe, not a decision** that a TL;DR "is not a
+summary" — low cosine means far in meaning, which is evidence, not proof. The
+surface flags are reported as rates, not categories. The AI summary is one
+model's output at temperature 0 — a single reference point, not ground truth,
+and not something we audit. VADER is blunt on short text and the corpus is 2017
+English Reddit, so magnitudes are directional.
 
 ## Conclusion
 
-A human TL;DR is not a single thing. The slot holds several speech acts —
-summary, question, advice, reaction — and the mix is governed first by **post
-type** (self-post vs. comment) and second by **community register**. Only about
-6% of TL;DRs are clearly extractive summaries, and the typical one rewrites the
-post in fresh wording. This matters for anyone using Webis-TLDR-17 as
-ground-truth summaries: the label "TL;DR" hides real heterogeneity that varies
-systematically across communities. Measuring which TL;DRs are genuine summaries
-is the precondition for any later, fair comparison against automatic
-summarizers.
+A TL;DR is a text of unknown type. Measured against an AI summary as a fixed
+reference point, the human TL;DR sits a measurable distance from a plain summary
+— it keeps the author's first person, sometimes reads as a question or a
+reaction, and rewrites rather than reuses the post — and that distance varies
+systematically across communities and between self-posts and comments. This
+means Webis-TLDR-17 is not uniformly a set of ground-truth summaries: the label
+"TL;DR" hides heterogeneity that a summarizer trained on it inherits.
 
 ## Contributions
 
 | Team Member | Contributions |
 |-------------|---------------|
-| Jorge | _e.g._ corpus inventory & sampling, feature extraction, figures |
-| Kanta | _e.g._ summariness/type analysis, report write-up, website |
+| Jorge | _e.g._ corpus inventory & sampling, feature pipeline, AI baseline |
+| Kanta | _e.g._ semantic-distance & comparison analysis, report, website |
 
-_(Edit this table to reflect your actual split of work.)_
+_(Edit to reflect your actual split of work.)_
 
 ## References
 
-- Völske, M., Potthast, M., Syed, S., & Stein, B. (2017). TL;DR: Mining Reddit to
-  Learn Automatic Summarization. *Proceedings of the Workshop on New Frontiers in
+- Völske, M., Potthast, M., Syed, S., & Stein, B. (2017). TL;DR: Mining Reddit
+  to Learn Automatic Summarization. *Proc. Workshop on New Frontiers in
   Summarization*, 59–63.
 - Hutto, C. J., & Gilbert, E. (2014). VADER: A Parsimonious Rule-Based Model for
-  Sentiment Analysis of Social Media Text. *Proceedings of the International AAAI
-  Conference on Web and Social Media*, 8(1), 216–225.
+  Sentiment Analysis of Social Media Text. *Proc. ICWSM*, 8(1), 216–225.
+- Reimers, N., & Gurevych, I. (2019). Sentence-BERT: Sentence Embeddings using
+  Siamese BERT-Networks. *Proc. EMNLP-IJCNLP*, 3982–3992.
 - Grusky, M., Naaman, M., & Artzi, Y. (2018). Newsroom: A Dataset of 1.3 Million
-  Summaries with Diverse Extractive Strategies. *Proceedings of NAACL-HLT*,
-  708–719.
+  Summaries with Diverse Extractive Strategies. *Proc. NAACL-HLT*, 708–719.
