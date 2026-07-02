@@ -33,17 +33,27 @@ python code/scripts/03_features.py                  # -> data/processed/features
 
 ## 3. AI baseline (items measured against it)
 
-```bash
-# set your key (never commit it)
-export OPENAI_API_KEY=sk-...           # PowerShell: $env:OPENAI_API_KEY="sk-..."
+Gemma 3 27B runs as a Kubernetes pod with a vLLM backend. Start the port-forward
+**in a separate terminal** before running the script or notebook:
 
+```bash
+kubectl port-forward pod/jorge-vllm-gemma3-27b 8001:8000 \
+    -n user-jorge-lastra-cerda --address 0.0.0.0
+```
+
+Then (in a different terminal):
+
+```bash
 python code/scripts/04_ai_baseline.py --dry-run     # check the subsample, no API calls
 python code/scripts/04_ai_baseline.py               # ~200/subreddit, temp 0
 #   -> data/interim/ai_summaries.jsonl  (resumable; re-run to continue)
 ```
 
-Model defaults to `gpt-4o-mini`; change with `--model`. It is a fixed reference
-point, not a gold standard.
+**On JupyterHub:** open `code/notebooks/04_ai_baseline.py` as a notebook instead —
+it starts the port-forward automatically and shows progress cell by cell.
+
+The model is auto-detected from the vLLM endpoint (`/v1/models`). It is a fixed
+reference point, not a gold standard.
 
 ## 4. Distance + comparison + figures
 
@@ -75,5 +85,6 @@ then Settings → Pages → Branch `main` → your site is at
   download). For SBERT: `pip install sentence-transformers`.
 - NER is optional: `python -m spacy download en_core_web_sm` then
   `python code/scripts/03_features.py --with-ner`.
-- Common errors: `Input sample not found` → run 01/02 first; `OPENAI_API_KEY is
-  not set` → export it; parquet engine error → `pip install pyarrow`.
+- Common errors: `Input sample not found` → run 01/02 first;
+  `Cannot reach vLLM endpoint` → start the kubectl port-forward first;
+  parquet engine error → `pip install pyarrow`.

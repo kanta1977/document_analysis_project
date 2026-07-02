@@ -1,25 +1,29 @@
 #!/usr/bin/env python
-"""Step 4 — AI baseline summaries (OpenAI mini).
+"""Step 4 — AI baseline summaries (Gemma 3 27B via vLLM).
 
-For a stratified subsample of posts, ask an OpenAI *mini* model for a neutral
-one-to-two sentence summary of each post body. These summaries are a fixed
-REFERENCE POINT ("what a plain summary looks like"), NOT a gold standard and
-NOT an object of study. We compare the human TL;DR against this reference.
+For a stratified subsample of posts, ask Gemma 3 27B for a neutral one-to-two
+sentence summary of each post body. These summaries are a fixed REFERENCE POINT
+("what a plain summary looks like"), NOT a gold standard and NOT an object of
+study. We compare the human TL;DR against this reference.
+
+Gemma is served via vLLM on a Kubernetes pod (jorge-vllm-gemma3-27b) with an
+OpenAI-compatible REST API. Start the port-forward before running:
+
+    kubectl port-forward pod/jorge-vllm-gemma3-27b 8001:8000 \
+        -n user-jorge-lastra-cerda --address 0.0.0.0
 
 Design choices (do not change casually — they keep the baseline reproducible):
-  * one fixed mini model, temperature 0
+  * one fixed model (Gemma 3 27B), temperature 0
   * one neutral prompt for every subreddit (no per-community wording)
   * NO instruction to keep the first person — we want the model's own default,
     so that "first person survives in human TL;DRs" is measured, not imposed
   * stratified subsample: up to N posts per subreddit (default 200)
 
-The API key is read from the OPENAI_API_KEY environment variable. It is never
-written to disk or hard-coded.
-
-Run:
-    export OPENAI_API_KEY=sk-...          # (Windows PowerShell: $env:OPENAI_API_KEY="sk-...")
+Run (after starting the port-forward):
     python scripts/04_ai_baseline.py
-    python scripts/04_ai_baseline.py --per-subreddit 200 --model gpt-4o-mini
+    python scripts/04_ai_baseline.py --per-subreddit 200 --base-url http://localhost:8001/v1
+    python scripts/04_ai_baseline.py
+    python scripts/04_ai_baseline.py --per-subreddit 200 --base-url http://localhost:8001/v1
     python scripts/04_ai_baseline.py --dry-run          # no API calls; checks the sample
 """
 
@@ -27,7 +31,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import sys
 import time
 from pathlib import Path
@@ -81,7 +84,10 @@ def main() -> None:
     ap.add_argument("--config", default="configs/project.yaml")
     ap.add_argument("--input", default=None, help="default: sample.output from config")
     ap.add_argument("--output", default="data/interim/ai_summaries.jsonl")
-    ap.add_argument("--model", default="gpt-4o-mini", help="an OpenAI mini model")
+    ap.add_argument("--base-url", default="http://localhost:8001/v1",
+                    help="vLLM OpenAI-compatible endpoint (default: localhost:8001/v1)")
+    ap.add_argument("--model", default=None,
+                    help="model name override; auto-detected from endpoint if omitted")
     ap.add_argument("--per-subreddit", type=int, default=200)
     ap.add_argument("--dry-run", action="store_true",
                     help="build the subsample and print counts, but call no API")
@@ -122,19 +128,29 @@ def main() -> None:
         if done:
             print(f"Resuming: {len(done):,} summaries already present, will skip them.")
 
-    key = os.environ.get("OPENAI_API_KEY")
-    if not key:
-        raise SystemExit(
-            "OPENAI_API_KEY is not set.\n"
-            "  PowerShell:  $env:OPENAI_API_KEY=\"sk-...\"\n"
-            "  bash:        export OPENAI_API_KEY=sk-..."
-        )
     try:
         from openai import OpenAI
     except ImportError:
         raise SystemExit("openai package missing. Run: pip install openai")
 
-    client = OpenAI()
+    # vLLM exposes an OpenAI-compatible API; no real key needed.
+    client = OpenAI(base_url=args.base_url, api_key="token")
+
+    # Auto-detect model name if not provided.
+    model = args.model
+    if model is None:
+        try:
+            models = client.models.list()
+            model = models.data[0].id
+            print(f"Auto-detected model: {model}")
+        except Exception as e:
+            raise SystemExit(
+                f"Cannot reach vLLM endpoint at {args.base_url}: {e}\n"
+                "Start the port-forward first:\n"
+                "  kubectl port-forward pod/jorge-vllm-gemma3-27b 8001:8000 "
+                "-n user-jorge-lastra-cerda --address 0.0.0.0"
+            )
+
     written = 0
     with open(out, "a", encoding="utf-8") as f:
         for i, p in enumerate(picked):
@@ -142,12 +158,12 @@ def main() -> None:
             if pid in done:
                 continue
             try:
-                summary = summarize_one(client, args.model, p.get("content", ""))
+                summary = summarize_one(client, model, p.get("content", "")[:3000])
             except Exception as e:  # keep going; log and continue
                 print(f"  ! error on {pid}: {e}; retrying once in 5s", flush=True)
                 time.sleep(5)
                 try:
-                    summary = summarize_one(client, args.model, p.get("content", ""))
+                    summary = summarize_one(client, model, p.get("content", "")[:3000])
                 except Exception as e2:
                     print(f"  !! skipping {pid}: {e2}", flush=True)
                     continue
@@ -165,7 +181,7 @@ def main() -> None:
                 print(f"  ... {written:,} summaries", flush=True)
 
     print(f"\nWrote {written:,} new AI summaries -> {out}")
-    print(f"Model={args.model}, temperature=0. This is a fixed reference point.")
+    print(f"Model={model}, temperature=0. This is a fixed reference point.")
 
 
 if __name__ == "__main__":

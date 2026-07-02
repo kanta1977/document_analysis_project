@@ -53,10 +53,12 @@ paraphrase; low + low = diverged. Cosine is a **distance**, not a verdict.
 
 ## The AI baseline
 
-`04_ai_baseline.py` is a fixed reference point: one OpenAI *mini* model,
-temperature 0, one neutral prompt for all subreddits, ~200 posts/subreddit.
-The API key comes from `OPENAI_API_KEY` (never stored). Same feature functions
-are applied to the AI summary in nb 07, so human and AI are measured identically.
+`04_ai_baseline.py` (script) and `notebooks/04_ai_baseline.py` (JupyterHub
+version) are a fixed reference point: Gemma 3 27B at temperature 0, one neutral
+prompt for all subreddits, ~200 posts/subreddit. Gemma is served via vLLM on a
+Kubernetes pod; start a kubectl port-forward to localhost:8001 before running
+(see RUNNING.md). No API key needed. Same feature functions are applied to the
+AI summary in nb 07, so human and AI are measured identically.
 
 ## Folders
 
