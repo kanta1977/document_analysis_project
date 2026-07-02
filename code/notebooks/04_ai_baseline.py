@@ -48,26 +48,35 @@ from pathlib import Path
 print("deps OK")
 
 # %% [markdown]
-# ## Cell 2 — Set the Gemma pod IP
+# ## Cell 2 — Set the Gemma endpoint URL
 #
-# **Do this once on your local machine** (the one that has kubectl):
+# Direct pod-to-pod IP is often blocked by NetworkPolicies in university clusters.
+# A **Kubernetes Service** has a stable DNS name that bypasses this restriction.
 #
-# ```bash
-# kubectl get pod jorge-vllm-gemma3-27b \
-#     -n user-jorge-lastra-cerda \
-#     -o jsonpath='{.status.podIP}'
+# **One-time setup on your local machine:**
+#
+# First check if a service already exists (from your jorge-test-pod.yaml):
+# ```powershell
+# kubectl get svc -n user-jorge-lastra-cerda
 # ```
 #
-# It prints something like `10.42.1.234`. Paste it below.
-# The port is always 8000 (that is the vLLM default inside the pod).
+# If nothing shows up, create the service:
+# ```powershell
+# kubectl expose pod jorge-vllm-gemma3-27b `
+#     --port=8000 --target-port=8000 `
+#     --name=gemma-svc `
+#     -n user-jorge-lastra-cerda
+# ```
 #
-# Why does this work without port-forward? JupyterHub and the Gemma pod are both
-# inside the same cluster network, so pods can talk to each other by IP directly.
+# Then use the cluster-internal DNS name below. The format is always:
+#   http://<service-name>.<namespace>.svc.cluster.local:<port>/v1
+# You never need to look up an IP again — this DNS name stays the same
+# even if the pod restarts with a new IP.
 
 # %%
-POD_IP = "PASTE_POD_IP_HERE"   # ← replace with output of the kubectl command above
-
-VLLM_BASE_URL = f"http://{POD_IP}:8000/v1"
+# Kubernetes service DNS — stable, no port-forward, no IP lookup needed.
+# If you named your service differently, change "gemma-svc" below.
+VLLM_BASE_URL = "http://gemma-svc.user-jorge-lastra-cerda.svc.cluster.local:8000/v1"
 VLLM_API_KEY  = "token"   # vLLM ignores this; any non-empty string works
 
 print(f"Will call: {VLLM_BASE_URL}")
