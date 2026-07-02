@@ -1,0 +1,12 @@
+metric,first_person_density,first_person_density,share_question_mark,share_question_mark,share_advice_words,share_advice_words,cosine_to_post,cosine_to_post,keyword_containment,keyword_containment
+source,human,ai,human,ai,human,ai,human,ai,human,ai
+Anxiety,0.072,0.0,0.285,0.0,0.37,0.135,0.754,0.805,0.191,0.269
+PoliticalDiscussion,0.021,0.002,0.15,0.0,0.27,0.225,0.712,0.829,0.187,0.391
+depression,0.076,0.0,0.25,0.0,0.305,0.175,0.73,0.775,0.188,0.231
+legaladvice,0.071,0.0,0.47,0.0,0.31,0.175,0.779,0.828,0.254,0.428
+offmychest,0.082,0.0,0.07,0.0,0.215,0.085,0.718,0.751,0.168,0.218
+personalfinance,0.048,0.001,0.345,0.0,0.345,0.21,0.758,0.817,0.225,0.418
+politics,0.018,0.002,0.045,0.0,0.28,0.215,0.702,0.819,0.172,0.393
+relationships,0.088,0.0,0.395,0.0,0.3,0.205,0.756,0.758,0.186,0.246
+worldnews,0.019,0.004,0.02,0.0,0.22,0.21,0.715,0.834,0.166,0.396
+ALL,0.055,0.001,0.226,0.0,0.291,0.182,0.736,0.802,0.193,0.332
