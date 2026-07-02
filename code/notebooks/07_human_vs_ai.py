@@ -25,7 +25,19 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-ROOT = Path(__file__).resolve().parents[1] if "__file__" in dir() else Path.cwd()
+# Robust ROOT: walk up from wherever we are until we find src/ or data/.
+# Works when CWD is code/, code/notebooks/, or anywhere else.
+def _find_root() -> Path:
+    if "__file__" in dir():
+        return Path(__file__).resolve().parents[1]
+    for p in [Path.cwd()] + list(Path.cwd().parents):
+        if (p / "src" / "tldr_audit").exists() or (p / "data" / "interim").exists():
+            return p
+    raise RuntimeError(
+        "Cannot locate project root. Open VS Code from the code/ folder."
+    )
+ROOT = _find_root()
+print("ROOT:", ROOT)
 sys.path.insert(0, str(ROOT / "src"))
 from tldr_audit.features import features_for_post  # noqa: E402
 from tldr_audit.semantic import pairwise_cosine  # noqa: E402
