@@ -1,0 +1,10 @@
+bucket,subreddit,sent_body,sent_human,sent_ai,shift_human,shift_ai
+advice,legaladvice,0.032,-0.105,-0.276,-0.137,-0.308
+advice,relationships,0.338,-0.015,-0.059,-0.353,-0.397
+advice,personalfinance,0.575,0.174,0.173,-0.401,-0.401
+mental_health,depression,-0.304,-0.145,-0.462,0.159,-0.158
+mental_health,Anxiety,-0.241,-0.121,-0.422,0.121,-0.181
+mental_health,offmychest,0.056,-0.062,-0.181,-0.118,-0.236
+political,worldnews,-0.155,-0.116,-0.187,0.039,-0.033
+political,politics,0.012,-0.021,-0.037,-0.032,-0.048
+political,PoliticalDiscussion,0.247,0.083,0.092,-0.164,-0.155

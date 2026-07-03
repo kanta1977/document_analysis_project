@@ -1,0 +1,4 @@
+bucket,n,median_compression,mean_sent_content,mean_sent_summary,mean_fp_content,mean_fp_summary,mean_novelty
+advice,13004,0.098,0.234,0.012,0.081,0.076,0.466
+mental_health,10999,0.079,-0.143,-0.172,0.095,0.084,0.505
+political,1010,0.104,0.237,0.045,0.033,0.03,0.579
