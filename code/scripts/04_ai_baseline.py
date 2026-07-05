@@ -81,6 +81,7 @@ def summarize_one(client, model, post_text):
 
 def main() -> None:
     ap = argparse.ArgumentParser()
+    #コマンドを以下で指定して、直接打てるようにしている
     ap.add_argument("--config", default="configs/project.yaml")
     ap.add_argument("--input", default=None, help="default: sample.output from config")
     ap.add_argument("--output", default="data/interim/ai_summaries.jsonl")
