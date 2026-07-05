@@ -2,7 +2,7 @@
 
 ### A Reddit TL;DR is expected to be a summary. We measure how far it sits from an AI summary, and how that varies by community
 
-_Group members: Jorge Lastra, Kanta Ito_alpaca
+_Group members: Jorge Lastra, Kanta Ito
 
 ---
 
