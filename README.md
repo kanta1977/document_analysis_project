@@ -10,7 +10,7 @@ Group members: Jorge Lastra, Kanta Ito
 
 When a Reddit post ends with **"TL;DR: …"** line, that line is usually
 treated as a summary. The Webis-TLDR-17 corpus (Völske et al., 2017) was built
-on this assumption and is widely used as human "ground-truth" summaries, as in a landmark RLHF paper from OpenAI in which TL;DR is used as human made summaries.
+on this assumption and is widely used as human "ground-truth" summaries, as in a landmark RLHF paper from OpenAI in which TL;DR is used as human made summaries (Stiennon et al. 2020).
 
 Working with the corpus we found that many TL;DRs are not exactly summaries: some are
 jokes, questions, or replies. Our first instinct was to classify them, and we
@@ -19,15 +19,10 @@ worked as a rough description, but we could not validate the categories without
 manual labels, and forcing every TL;DR into one box hid more than it showed.
 So we changed the question. Instead of asking *what type is this TL;DR*, we ask
 *how far is it from a plain summary*, and to make "plain summary" concrete we
-generate one for every post with a language model. This led us to our stance:
+generate one for every post with Gemma 3 27B. This led us to our stance:
 
-> **We treat the TL;DR as a text of unknown type, and measure how far it sits
-> from a plain summary, using an AI summary of the same post as a fixed
-> reference point. Then we ask how that distance differs across communities.**
-
-The AI summary is a **reference point**, not a gold standard. We describe
-*distance* from it without claiming it to be correct or that a distant TL;DR is
-"wrong".
+**We treat the TL;DR as a text of unknown type, and measure how far it sits
+from an AI summary (as a fixed reference point). Then we ask how that distance differs across communities.**
 
 We look at four things, on the human TL;DR and on the AI summary alike:
 
@@ -266,11 +261,4 @@ jointly.
 - Völske, M., Potthast, M., Syed, S., & Stein, B. (2017). TL;DR: Mining Reddit
   to Learn Automatic Summarization. *Proc. Workshop on New Frontiers in
   Summarization*, 59–63.
-- Hutto, C. J., & Gilbert, E. (2014). VADER: A Parsimonious Rule-Based Model for
-  Sentiment Analysis of Social Media Text. *Proc. ICWSM*, 8(1), 216–225.
-- Reimers, N., & Gurevych, I. (2019). Sentence-BERT: Sentence Embeddings using
-  Siamese BERT-Networks. *Proc. EMNLP-IJCNLP*, 3982–3992.
-- Grusky, M., Naaman, M., & Artzi, Y. (2018). Newsroom: A Dataset of 1.3 Million
-  Summaries with Diverse Extractive Strategies. *Proc. NAACL-HLT*, 708–719.
 - Stiennon, N., Ouyang, L., Wu, J., Ziegler, D., Lowe, R., Voss, C., … Christiano, P. (2020). Learning to summarize from human feedback. NeurIPS, 33, 3008–3021.
-< pages rebuild after source reset -->
