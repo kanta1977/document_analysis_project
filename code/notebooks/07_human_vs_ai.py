@@ -63,6 +63,7 @@ FIG.mkdir(parents=True, exist_ok=True)
 TAB.mkdir(parents=True, exist_ok=True)
 
 COLORS = {"human": "#333333", "ai": "#D55E00"}
+LEXICON = str(ROOT / "configs" / "lexicons" / "hedges.txt")
 
 # %% load data
 sample_path = ROOT / "data" / "interim" / "sample.jsonl"
@@ -84,8 +85,8 @@ for a in ai:
     human_tldr = a.get("human_tldr") or src.get("summary")
     ai_summary = a.get("summary")
 
-    fh = features_for_post({"content": content, "summary": human_tldr}, with_ner=False)
-    fa = features_for_post({"content": content, "summary": ai_summary},  with_ner=False)
+    fh = features_for_post({"content": content, "summary": human_tldr}, lexicon_path=LEXICON, with_ner=False)
+    fa = features_for_post({"content": content, "summary": ai_summary},  lexicon_path=LEXICON, with_ner=False)
     rows.append({
         "id":            pid,
         "subreddit":     a.get("subreddit"),
