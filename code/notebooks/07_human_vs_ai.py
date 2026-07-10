@@ -179,4 +179,6 @@ for metric_key, fname, title in FIGURE_DEFS:
     fig.savefig(FIG / f"{fname}.png", dpi=200, bbox_inches="tight")
     fig.savefig(FIG / f"{fname}.svg",           bbox_inches="tight")
     plt.show()
+    print(f"saved {fname}")savefig(FIG / f"{fname}.svg",           bbox_inches="tight")
+    plt.show()
     print(f"saved {fname}")
