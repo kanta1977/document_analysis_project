@@ -81,7 +81,7 @@ filters and draws the stratified sample into `sample.jsonl`.
 (`src/tldr_audit/features.py`): first-person density, the surface flags
 (`has_question_mark`, `has_advice_marker`, `has_second_person`),
 `summary_novelty`, `keyword_containment`, sentiment, and compression.
-
+  
 **AI summaries.** `04_ai_baseline.py` sends each subsampled post body to
 **Gemma 3 27B**, served with vLLM on the University of Konstanz computational
 cluster, at **temperature 0** (deterministic output) with one neutral prompt,
@@ -105,6 +105,8 @@ fallback so it runs anywhere. `07_human_vs_ai.ipynb` (also available as
 for each post, aggregates per subreddit and overall, and saves one figure per
 metric to `results/figures/`.
 
+->change the explanation to the latest file name and pyhton file option for each explanation.
+
 ## Results and Discussion
 
 _The community figures (compression, summariness) are built from the
@@ -114,6 +116,7 @@ the 1,800-post subsample with AI summaries; the full table is in
 
 ---
 
+<<<<<<< HEAD
 ### What a TL;DR looks like
 
 People keep only a small share of their own words. The median TL;DR is 8 to 13% of the post's length, and this ratio is nearly identical across all three community types. The AI summary compresses at the same ratio. Whatever separates the human TL;DR from a plain summary, total length is not it.
@@ -121,10 +124,44 @@ People keep only a small share of their own words. The median TL;DR is 8 to 13% 
 ![Compression ratio of human TL;DRs by community](figures/01_compression_by_bucket.svg)
 
 ![Compression ratio of AI summaries by community](figures/01c_ai_compression_by_bucket_1.png)
+=======
+-> explanation need to be the comparison with AI summary length.
+
+![Compression by bucket](figures/01_compression_by_bucket.png)
+![compression by AI](figures/01c_ai_compression_by_bucket_1.png)
+### 1. Does the first person survive?
+
+Summarizing generally thins out the first person: an AI summary tends to shift
+"I can't pay my rent" toward "the poster has a payment issue". Yet in Reddit's
+advice and mental-health communities the TL;DR keeps "I" at nearly the density
+of the post. So the survival of the first person is not a property of
+summarizing, it is a property of Reddit's self-narration culture, strongest
+where people tell their own stories and near-absent in political writing.
+->avoid deplicated explanation with First person density comparison
+
+![First-person density for TL;DR](figures/03_first_person_survival.png)
+
+->add explanation on the difference of first person density between AI and TL;DR
+・AI doesnt include first person but TL;DR does. this is main point.
+![First-person density comparison between AI and TL;DR](figures/07_first_person_density.png)
+
+>>>>>>> 928cc603124f1be3a8d6e98367f6122b48105955
 
 Beyond length, TL;DRs show consistent surface patterns across communities. Many contain question marks or advice-type words (should / need to / avoid ...). We report these as rates only: a question mark *may* mean the TL;DR is really a question rather than a summary, but we do not stamp a label on it. These rates differ by community and become legible only once placed beside the AI baseline, which we do in the next section.
 
+<<<<<<< HEAD
 How far a TL;DR sits from the post in meaning and vocabulary tells a clearer story. Combining cosine similarity (semantic distance) and keyword containment (lexical overlap) separates three cases:
+=======
+We count how often a TL;DR contains a question mark or advice-type words
+(should / need to / avoid …). We stop at the rate: a question mark **may**
+indicate the TL;DR is really a question rather than a summary, but we do not
+label it as such. These rates differ by community, political comment threads
+carry far more "reaction"-like markers than advice self-posts, and reading the
+rates, rather than forcing a category, keeps the interpretation open.
+-> add AI and TL;DR comparison explanation from the result (07_share_question_mark.png and 07_share_advice_words.png)
+![Question Mark AI vs TL;DR](figures/07_share_question_mark.png)
+![Advice word AI vs TL;DR](figures/07_share_advice_words.png)
+>>>>>>> 928cc603124f1be3a8d6e98367f6122b48105955
 
 - high containment + high cosine: an extractive summary
 - **low containment + high cosine: a paraphrase** (different words, same meaning)
@@ -138,9 +175,29 @@ Most human TL;DRs cluster in the paraphrase region: they reuse few of the post's
 
 Splitting self-posts from comments explains part of this. Comment TL;DRs barely reuse the post because they are replies, and political communities are ~92% comments. The community gap shrinks once you separate the two, but does not vanish.
 
+<<<<<<< HEAD
 ![Summariness by post type: self-posts vs comments](figures/04b_summariness_decomposed.svg)
 
 ---
+=======
+
+Each dot is one post. Most human TL;DRs cluster in the paraphrase region:
+they reuse few of the post's key words but stay close in meaning. The
+political posts (orange) spread furthest into the diverged corner, where both
+the words and the meaning move away from the post.
+
+
+
+![Keyword containment AI vs TL;DR](figures/07_keyword_containment.png)
+![Cosine Similarity Score AI vs TL;DR](07d_cosine_to_post.png)
+->add the AI and TL;DR comparison explanation like below
+・TL;DR is little bit less cosine similarity score but almost same with AI, but if you see the keyword containment, AI outperform in this. it suggest TL;DR summarise but paraphrasing.
+
+
+
+
+![Summariness, split by post type](figures/04b_summariness_decomposed.png)
+>>>>>>> 928cc603124f1be3a8d6e98367f6122b48105955
 
 ### Human TL;DR vs. AI baseline
 
@@ -148,11 +205,24 @@ The figures below measure the same four things on the human TL;DR and on the AI 
 
 #### First person
 
+<<<<<<< HEAD
 The AI summary at temperature 0 produces almost no first person: density sits near zero across all subreddits. Human TL;DRs in advice and mental-health communities keep "I" at 7 to 9% of words, a gap of more than 50 times. This is not a feature of summarizing in general; it reflects how Reddit writers narrate their own situations. The survival of the first person is strongest where people tell their own stories and near-absent in political writing.
 
 ![First-person density: human TL;DR vs AI baseline](figures/07a_first_person_density.svg)
 
 #### Surface signals
+=======
+**Sentiment.** We compare the mood of the post body, the human TL;DR, and the
+AI summary on the same axis. Human TL;DRs mostly drift toward neutral, with
+r/depression staying negative and r/Anxiety moving calmer. The AI summary
+behaves differently: it lands consistently on the negative side of both the
+body and the human TL;DR, most visibly in the advice communities, where the
+body reads positive but the AI summary reads negative. We report this as an
+observation, not a finding. Two explanations are plausible and our data cannot
+separate them: VADER may score the AI's clinical wording as negative even when
+the content is neutral, or the AI may genuinely strip the positive framing
+that authors give their own stories. We return to this in Further research.
+>>>>>>> 928cc603124f1be3a8d6e98367f6122b48105955
 
 Question marks appear in 22.6% of human TL;DRs overall. In r/legaladvice the rate reaches 47%, so nearly half of those TL;DRs read as questions rather than summaries. The AI baseline produces almost none.
 
@@ -179,6 +249,20 @@ We compare the mood of the post body, the human TL;DR, and the AI summary on the
 Taken together, the comparisons tell a consistent story. First person: human TL;DRs keep "I" at more than 50 times the rate of the AI baseline. Question marks: 22.6% of human TL;DRs contain one, the AI almost never does, and in r/legaladvice that rate reaches 47%. Keyword containment: the AI reuses 33% of post keywords versus 19% for human TL;DRs. Cosine: human TL;DRs sit slightly farther from the post in meaning (0.74 vs 0.80). The human TL;DR is not a worse summary; it is doing a different job.
 
 ---
+
+
+->summarise AI vs TL;DR discussion by changing the below sentences
+
+The five panels place the human TL;DR (dark) beside the AI summary (orange)
+for each community. The gaps are large and consistent. First person: 5.5% of
+human TL;DR words vs 0.1% in the AI summary, a difference of more than 50×.
+Question marks: 22.6% of human TL;DRs contain one, the AI never does; in
+r/legaladvice the human rate reaches 47%, so nearly half of those TL;DRs read
+as questions rather than summaries. Meanwhile the AI summary is both
+semantically closer to the post (cosine 0.80 vs 0.74) and reuses more of its
+key words (33% vs 19%). The human TL;DR is not a worse summary; it is doing
+a different job.
+
 
 ### Limitations
 
