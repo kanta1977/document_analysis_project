@@ -52,7 +52,7 @@ report_site/
     │   ├── 01_inventory.py       count posts per subreddit
     │   ├── 02_sample.py          filter + stratified sample -> sample.jsonl
     │   ├── 03_features.py        human features -> features.parquet
-    │   └── 04_ai_baseline.py     AI summaries (OpenAI mini) -> ai_summaries.jsonl
+    │   └── 04_ai_baseline.py     AI summaries (Gemma 3 27B via vLLM) -> ai_summaries.jsonl
     ├── notebooks/
     │   ├── 03_explore_human_tldr.py     figs 01–03 + bucket table
     │   ├── 04b_summariness_decomposed.py fig 04b (summariness by post type)
@@ -80,8 +80,8 @@ python code/scripts/01_inventory.py
 python code/scripts/02_sample.py
 python code/scripts/03_features.py
 
-# 3. AI baseline (needs a key; it is a reference point, not a gold standard)
-export OPENAI_API_KEY=sk-...        # PowerShell: $env:OPENAI_API_KEY="sk-..."
+# 3. AI baseline (Gemma 3 27B via vLLM; start kubectl port-forward first)
+kubectl port-forward pod/jorge-vllm-gemma3-27b 8001:8000 -n user-jorge-lastra-cerda --address 0.0.0.0
 python code/scripts/04_ai_baseline.py
 
 # 4. distance, comparison, figures
